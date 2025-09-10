@@ -1,1 +1,1 @@
-# flights-mcp
+# weather-mcp

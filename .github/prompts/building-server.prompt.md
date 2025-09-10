@@ -26,10 +26,10 @@
 
   ```
 
-- [] **Build Helper functions to call the Flights API** using the curl instructions provided: `instructions/search-flights-api.instructions.md`
+- [] **Build Helper functions to call the weather s API** using the curl instructions provided: `instructions/search-weather s-api.instructions.md`
 
   ```typescript
-    // Helper function for making Search Flight API requests
+    // Helper function for making Search weather  API requests
     // Todo
 
     // Interface for the request body, response, and error handling
