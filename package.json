@@ -1,11 +1,19 @@
 {
+  "type": "module",
+  "bin": {
+    "weather": "./build/index.js"
+  },
   "name": "weather-mcp",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+  "build": "tsc"
   },
+  "files": [
+    "build"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/hieucan99/weather-mcp.git"

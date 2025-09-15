@@ -1,12 +1,10 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const mcp_js_1 = require("@modelcontextprotocol/sdk/server/mcp.js");
-const stdio_js_1 = require("@modelcontextprotocol/sdk/server/stdio.js");
-const zod_1 = require("zod");
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { z } from "zod";
 const WEATHER_API_BASE = "https://dataservice.accuweather.com";
-const SEARCH_TOP_CITIES = "/currentconditions/v1/topcities/50?language=vi";
+const SEARCH_TOP_CITIES = "/currentconditions/v1/topcities";
 // Create server instance
-const server = new mcp_js_1.McpServer({
+const server = new McpServer({
     name: "weather",
     version: "1.0.0",
     capabilities: {
@@ -15,7 +13,12 @@ const server = new mcp_js_1.McpServer({
     },
 });
 // Helper function for making Search - Current conditions for top cities
-async function searchTopCities(url, apiKey, topCity, language) {
+async function searchTopCities(topCity, language) {
+    const apiKey = process.env.ACCUWEATHER_API_KEY || "";
+    const url = `${WEATHER_API_BASE}${SEARCH_TOP_CITIES}`;
+    if (!apiKey) {
+        throw new Error("API key is required");
+    }
     const header = {
         Authorization: `Bearer ${apiKey}`,
     };
@@ -33,22 +36,23 @@ async function searchTopCities(url, apiKey, topCity, language) {
         return await response.json();
     }
     catch (error) {
-        console.error("Fetch error:", error);
+        // Only log generic error, never log apiKey or sensitive info
+        console.error("Fetch error:", error && error.message ? error.message : error);
         return null;
     }
 }
 // Register Search - Current conditions for top cities
 server.tool("search_top_cities", "Search - Current conditions for top cities", {
-    api_key: zod_1.z.string().min(1).describe("Your API key for the weather service"),
-    top_city: zod_1.z.number().min(1).max(100).default(50).describe("Number of top cities to retrieve"),
-    language: zod_1.z.string().min(2).max(2).default("en-us").describe("Language code"),
-}, async ({ api_key, top_city, language }) => {
+    top_city: z.number().min(1).max(100).default(50).describe("Number of top cities to retrieve"),
+    language: z.string().min(2).max(2).default("en-us").describe("Language code"),
+}, async ({ top_city, language }) => {
     const language_code = language.toLocaleLowerCase() || "en-us";
-    const result = await searchTopCities(`${WEATHER_API_BASE}${SEARCH_TOP_CITIES}`, api_key, top_city, language_code);
+    const top_cities = Math.min(Math.max(top_city, 1), 100); // Ensure top_city is between 1 and 100
+    const result = await searchTopCities(top_cities, language_code);
     if (!result) {
         return {
             content: [
-                { type: "text", text: "Failed to fetch weather data. Please check your API key and parameters." }
+                { type: "text", text: "Failed to fetch weather data. Please check your parameters." }
             ]
         };
     }
@@ -76,7 +80,7 @@ server.tool("search_top_cities", "Search - Current conditions for top cities", {
 });
 // Start the server with stdio transport
 async function main() {
-    const transport = new stdio_js_1.StdioServerTransport();
+    const transport = new StdioServerTransport();
     await server.connect(transport);
     console.error("Weather MCP Server running on stdio");
 }
