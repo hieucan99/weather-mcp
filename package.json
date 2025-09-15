@@ -1,28 +1,9 @@
 {
-  "name": "weather-mcp",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "bin": {
+    "weather": "./build/index.js"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "build": "tsc"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/hieucan99/weather-mcp.git"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/hieucan99/weather-mcp/issues"
-  },
-  "homepage": "https://github.com/hieucan99/weather-mcp#readme",
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.17.5",
-    "zod": "^3.25.76"
-  },
-  "devDependencies": {
-    "@types/node": "^24.3.1",
-    "typescript": "^5.9.2"
-  }
+  "files": ["build"]
 }

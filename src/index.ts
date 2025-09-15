@@ -16,25 +16,27 @@ const server = new McpServer({
 });
 
 // Helper function for making Search - Current conditions for top cities
-async function searchTopCities(topCity: number, language: string) {
-  const apiKey = process.env.ACCUWEATHER_API_KEY || "";
+async function searchTopCities(topCity: number, language: string, apiKey: string) {
   const url = `${WEATHER_API_BASE}${SEARCH_TOP_CITIES}`;
   if (!apiKey) {
     throw new Error("API key is required");
   }
 
-  const header = {
+  const realHeader = {
     Authorization: `Bearer ${apiKey}`,
+    language: language,
   };
 
   const queryParams = new URLSearchParams({
     topCity: topCity.toString(),
-    language: language,
   });
+  
+
+  const fullUrl = `${url}/${topCity}`;
 
   try {
-    const response = await fetch(`${url}&${queryParams.toString()}`, {
-      headers: header,
+    const response = await fetch(fullUrl, {
+      headers: realHeader,
     });
 
     if (!response.ok) {
@@ -43,8 +45,13 @@ async function searchTopCities(topCity: number, language: string) {
 
     return await response.json();
   } catch (error: any) {
-    // Only log generic error, never log apiKey or sensitive info
+    // Log error details: url, payload, header (without sensitive info)
     console.error("Fetch error:", error && error.message ? error.message : error);
+    console.error("Request details:", {
+      url: fullUrl,
+      payload: null, // GET request, so no payload
+      headers: realHeader,
+    });
     return null;
   }
 }
@@ -56,12 +63,20 @@ server.tool(
   {
     top_city: z.number().min(1).max(100).default(50).describe("Number of top cities to retrieve"),
     language: z.string().min(2).max(2).default("en-us").describe("Language code"),
+    api_key: z.string().min(1).optional().describe("API key for authentication"),
   },
 
-  async ({ top_city, language }) => {
+  async ({ top_city, language, api_key }) => {
     const language_code = language.toLocaleLowerCase() || "en-us";
     const top_cities = Math.min(Math.max(top_city, 1), 100); // Ensure top_city is between 1 and 100
-    const result = await searchTopCities(top_cities, language_code);
+    if (!api_key) {
+      return {
+        content: [
+          { type: "text", text: "API key is required. Please provide a valid API key." }
+        ]
+      };
+    }
+    const result = await searchTopCities(top_cities, language_code, api_key);
 
 
     if(!result) {

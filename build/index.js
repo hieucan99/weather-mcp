@@ -4,7 +4,7 @@ const mcp_js_1 = require("@modelcontextprotocol/sdk/server/mcp.js");
 const stdio_js_1 = require("@modelcontextprotocol/sdk/server/stdio.js");
 const zod_1 = require("zod");
 const WEATHER_API_BASE = "https://dataservice.accuweather.com";
-const SEARCH_TOP_CITIES = "/currentconditions/v1/topcities/50?language=vi";
+const SEARCH_TOP_CITIES = "/currentconditions/v1/topcities";
 // Create server instance
 const server = new mcp_js_1.McpServer({
     name: "weather",
@@ -15,17 +15,22 @@ const server = new mcp_js_1.McpServer({
     },
 });
 // Helper function for making Search - Current conditions for top cities
-async function searchTopCities(url, apiKey, topCity, language) {
-    const header = {
+async function searchTopCities(topCity, language, apiKey) {
+    const url = `${WEATHER_API_BASE}${SEARCH_TOP_CITIES}`;
+    if (!apiKey) {
+        throw new Error("API key is required");
+    }
+    const realHeader = {
         Authorization: `Bearer ${apiKey}`,
+        language: language,
     };
     const queryParams = new URLSearchParams({
         topCity: topCity.toString(),
-        language: language,
     });
+    const fullUrl = `${url}/${topCity}`;
     try {
-        const response = await fetch(`${url}&${queryParams.toString()}`, {
-            headers: header,
+        const response = await fetch(fullUrl, {
+            headers: realHeader,
         });
         if (!response.ok) {
             throw new Error(`Error: ${response.status} - ${response.statusText}`);
@@ -33,22 +38,36 @@ async function searchTopCities(url, apiKey, topCity, language) {
         return await response.json();
     }
     catch (error) {
-        console.error("Fetch error:", error);
+        // Log error details: url, payload, header (without sensitive info)
+        console.error("Fetch error:", error && error.message ? error.message : error);
+        console.error("Request details:", {
+            url: fullUrl,
+            payload: null, // GET request, so no payload
+            headers: realHeader,
+        });
         return null;
     }
 }
 // Register Search - Current conditions for top cities
 server.tool("search_top_cities", "Search - Current conditions for top cities", {
-    api_key: zod_1.z.string().min(1).describe("Your API key for the weather service"),
     top_city: zod_1.z.number().min(1).max(100).default(50).describe("Number of top cities to retrieve"),
     language: zod_1.z.string().min(2).max(2).default("en-us").describe("Language code"),
-}, async ({ api_key, top_city, language }) => {
+    api_key: zod_1.z.string().min(1).optional().describe("API key for authentication"),
+}, async ({ top_city, language, api_key }) => {
     const language_code = language.toLocaleLowerCase() || "en-us";
-    const result = await searchTopCities(`${WEATHER_API_BASE}${SEARCH_TOP_CITIES}`, api_key, top_city, language_code);
+    const top_cities = Math.min(Math.max(top_city, 1), 100); // Ensure top_city is between 1 and 100
+    if (!api_key) {
+        return {
+            content: [
+                { type: "text", text: "API key is required. Please provide a valid API key." }
+            ]
+        };
+    }
+    const result = await searchTopCities(top_cities, language_code, api_key);
     if (!result) {
         return {
             content: [
-                { type: "text", text: "Failed to fetch weather data. Please check your API key and parameters." }
+                { type: "text", text: "Failed to fetch weather data. Please check your parameters." }
             ]
         };
     }
