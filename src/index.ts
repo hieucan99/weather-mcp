@@ -16,8 +16,9 @@ const server = new McpServer({
 });
 
 // Helper function for making Search - Current conditions for top cities
-async function searchTopCities(topCity: number, language: string, apiKey: string) {
+async function searchTopCities(topCity: number, language: string) {
   const url = `${WEATHER_API_BASE}${SEARCH_TOP_CITIES}`;
+  const apiKey =  process.env.ACCUWEATHER_API_KEY || "";
   if (!apiKey) {
     throw new Error("API key is required");
   }
@@ -63,21 +64,12 @@ server.tool(
   {
     top_city: z.number().min(1).max(100).default(50).describe("Number of top cities to retrieve"),
     language: z.string().min(2).max(2).default("en-us").describe("Language code"),
-    api_key: z.string().min(1).optional().describe("API key for authentication"),
   },
 
-  async ({ top_city, language, api_key }) => {
+  async ({ top_city, language }) => {
     const language_code = language.toLocaleLowerCase() || "en-us";
     const top_cities = Math.min(Math.max(top_city, 1), 100); // Ensure top_city is between 1 and 100
-    if (!api_key) {
-      return {
-        content: [
-          { type: "text", text: "API key is required. Please provide a valid API key." }
-        ]
-      };
-    }
-    const result = await searchTopCities(top_cities, language_code, api_key);
-
+    const result = await searchTopCities(top_cities, language_code);
 
     if(!result) {
       return {
